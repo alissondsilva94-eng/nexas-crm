@@ -293,7 +293,7 @@ tr:hover td{background:rgba(201,168,76,.04);color:var(--of)}
         <button class="btn-sm" onclick="openNovaPac()" style="background:linear-gradient(135deg,var(--go),#8B6914);color:#111;border:none;font-weight:700;padding:8px 16px">+ NOVA PAC</button>
       </div>
       <div class="card"><div class="tw"><table>
-        <thead><tr><th>MÊS</th><th>CORRETOR</th><th>CLIENTE</th><th>CONSTRUTORA</th><th>PRODUTO</th><th>STATUS</th><th>VGV</th><th style="color:var(--go)">COMISSÃO 5%</th><th style="color:#fb923c">🎁 BÔNUS</th><th style="color:var(--red)">🔴 BOT.VERM.</th><th style="color:#94a3b8">ALÍQ.6%</th><th style="color:#f87171">DESC.ALÍQ.</th><th style="color:#22c55e">VL.LÍQUIDO</th><th style="color:#86efac">IMOBILIÁRIA 50%</th><th style="color:#22c55e">COMISSÃO CORRETOR</th><th>✕</th></tr></thead>
+        <thead><tr><th>MÊS</th><th>CORRETOR</th><th>CLIENTE</th><th>CONSTRUTORA</th><th>PRODUTO</th><th>STATUS</th><th style="color:#22c55e">SITUAÇÃO</th><th>VGV</th><th style="color:var(--go)">COMISSÃO 5%</th><th style="color:#fb923c">🎁 BÔNUS</th><th style="color:var(--red)">🔴 BOT.VERM.</th><th style="color:#94a3b8">ALÍQ.6%</th><th style="color:#f87171">DESC.ALÍQ.</th><th style="color:#22c55e">VL.LÍQUIDO</th><th style="color:#86efac">IMOBILIÁRIA 50%</th><th style="color:#22c55e">COMISSÃO CORRETOR</th><th>✕</th></tr></thead>
         <tbody id="pac-tbody"></tbody>
       </table></div></div>
       <div class="pac-totais" id="pac-totais"></div>
@@ -428,12 +428,31 @@ tr:hover td{background:rgba(201,168,76,.04);color:var(--of)}
     </div>
   </div>
   <div class="corr-top"><div class="corr-wel">BEM-VINDO,</div><div class="corr-wname" id="corr-nome"></div></div>
-  <div class="mini-kpi">
+  <!-- TABS CORRETOR -->
+  <div style="display:flex;background:var(--ng);border-bottom:1px solid var(--gb);padding:0 16px;gap:2px;overflow-x:auto">
+    <button class="tab active" id="corr-tab-leads" onclick="showCorrTab('leads',this)" style="font-size:11px;letter-spacing:1px">📋 MEUS LEADS</button>
+    <button class="tab" id="corr-tab-nexbot" onclick="showCorrTab('nexbot',this)" style="font-size:11px;letter-spacing:1px;color:#22c55e">💬 NEXBOT</button>
+  </div>
+  <div class="mini-kpi" id="corr-leads-section">
     <div class="mkpi"><div class="mkpi-val" id="my-total">0</div><div class="mkpi-lab">MEUS LEADS</div></div>
     <div class="mkpi"><div class="mkpi-val" id="my-quentes">0</div><div class="mkpi-lab">QUENTES</div></div>
     <div class="mkpi"><div class="mkpi-val" id="my-fechados">0</div><div class="mkpi-lab">FECHADOS</div></div>
   </div>
-  <div class="corr-content">
+  <div id="corr-nexbot-section" style="display:none;flex:1;flex-direction:column">
+    <div style="padding:16px 20px">
+      <div style="font-size:10px;letter-spacing:2px;color:#22c55e;margin-bottom:12px;font-weight:700">💬 NEXBOT — FILA DE ATENDIMENTO</div>
+      <div style="font-size:12px;color:var(--mu);margin-bottom:16px">Clientes que enviaram mensagem no WhatsApp da NEXAS. Clique em <strong style="color:var(--go)">PUXAR LEAD</strong> para atender!</div>
+      <!-- KPIs NEXBOT -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px">
+        <div class="mkpi"><div class="mkpi-val" id="nexbot-aguardando" style="color:#fb923c">0</div><div class="mkpi-lab">AGUARDANDO</div></div>
+        <div class="mkpi"><div class="mkpi-val" id="nexbot-puxados" style="color:#22c55e">0</div><div class="mkpi-lab">PUXADOS</div></div>
+        <div class="mkpi"><div class="mkpi-val" id="nexbot-total" style="color:var(--go)">0</div><div class="mkpi-lab">TOTAL HOJE</div></div>
+      </div>
+      <!-- FILA -->
+      <div id="nexbot-fila"></div>
+    </div>
+  </div>
+  <div class="corr-content" id="corr-leads-content">
     <button class="btn-add" onclick="openModal('corretor')">+ CADASTRAR NOVO LEAD</button>
     <!-- FINANCEIRO DO CORRETOR -->
     <div id="my-pac-financeiro" style="display:none;margin-bottom:16px">
@@ -580,7 +599,7 @@ const {createClient}=supabase; const sb=createClient(SURL,SKEY);
 
 let role=null,corrAtual=null,gerAtual=null,modalMode='ceo';
 let allLeads=[],allCorretores=[];
-let pacData=[{"id": "p1", "mes": "FEV", "corretor": "Edvaldo", "cliente": "Jackson Siqueira", "construtora": "MRV", "produto": "RECANTO DAS ARVORES", "status": "APROVADO SICAQ", "vgv": 242000, "bonus": 0, "botverm": 300}, {"id": "p2", "mes": "FEV", "corretor": "Edvaldo", "cliente": "Layane Lucia", "construtora": "MRV", "produto": "RECANTO DAS ARVORES", "status": "APROVADO SICAQ", "vgv": 235210, "bonus": 500, "botverm": 350}, {"id": "p3", "mes": "FEV", "corretor": "Filipe", "cliente": "Cristiano Bezerra", "construtora": "ENGENHARQ", "produto": "CASTANHEIRAS", "status": "APROVADO SICAQ", "vgv": 275000, "bonus": 0, "botverm": 0}, {"id": "p4", "mes": "FEV", "corretor": "Filipe", "cliente": "Marlene/Ibener", "construtora": "MRV", "produto": "RECANTO DAS ARVORES", "status": "APROVADO SICAQ", "vgv": 267990, "bonus": 0, "botverm": 0}, {"id": "p5", "mes": "FEV", "corretor": "Edvaldo", "cliente": "Leydson Barbosa", "construtora": "MRV", "produto": "RECANTO DAS ARVORES", "status": "APROVADO SICAQ", "vgv": 247950, "bonus": 500, "botverm": 0}, {"id": "p6", "mes": "FEV", "corretor": "Alisson", "cliente": "Kesia/Ewerty", "construtora": "MRV", "produto": "MIRANTE DA LAGOA", "status": "APROVADO SICAQ", "vgv": 349080, "bonus": 0, "botverm": 0}, {"id": "p7", "mes": "FEV", "corretor": "Edvaldo", "cliente": "MyRELLE Rayane", "construtora": "MRV", "produto": "RECANTO DAS ARVORES", "status": "APROVADO SICAQ", "vgv": 249910, "bonus": 500, "botverm": 0}, {"id": "p8", "mes": "FEV", "corretor": "Alanea", "cliente": "Renata Morais", "construtora": "TELESIL", "produto": "GRAND VIA", "status": "APROVADO SICAQ", "vgv": 267990, "bonus": 500, "botverm": 0}, {"id": "p9", "mes": "FEV", "corretor": "Edvaldo", "cliente": "Gean", "construtora": "TELESIL", "produto": "GRAND VIA", "status": "APROVADO SICAQ", "vgv": 263990, "bonus": 500, "botverm": 0}, {"id": "p10", "mes": "FEV", "corretor": "Filipe", "cliente": "Claudio Henrique", "construtora": "ENGENHARQ", "produto": "JARDINS DOS COQUEIRAIS", "status": "APROVADO SICAQ", "vgv": 273000, "bonus": 0, "botverm": 0}, {"id": "p11", "mes": "FEV", "corretor": "Filipe", "cliente": "Jamerson", "construtora": "ENGENHARQ", "produto": "JEQUITIBA", "status": "APROVADO SICAQ", "vgv": 255000, "bonus": 0, "botverm": 0}, {"id": "p12", "mes": "MAIO", "corretor": "Elissandra", "cliente": "Lorena Maria", "construtora": "TELESIL", "produto": "ALDEPRIME", "status": "APROVADO SICAQ", "vgv": 276848.58, "bonus": 0, "botverm": 0}, {"id": "p13", "mes": "MAIO", "corretor": "Alanea", "cliente": "Marin\u00e9ide Santos", "construtora": "ENGENHARQ", "produto": "COQUEIRAIS", "status": "APROVADO SICAQ", "vgv": 260000, "bonus": 0, "botverm": 0}];
+let pacData=[{"id": "p1", "mes": "FEV", "corretor": "Edvaldo", "cliente": "Jackson Siqueira", "construtora": "MRV", "produto": "RECANTO DAS ARVORES", "status": "APROVADO SICAQ", "vgv": 242000, "bonus": 0, "botverm": 300,"status_venda":"venda"}, {"id": "p2", "mes": "FEV", "corretor": "Edvaldo", "cliente": "Layane Lucia", "construtora": "MRV", "produto": "RECANTO DAS ARVORES", "status": "APROVADO SICAQ", "vgv": 235210, "bonus": 500, "botverm": 350,"status_venda":"venda"}, {"id": "p3", "mes": "FEV", "corretor": "Filipe", "cliente": "Cristiano Bezerra", "construtora": "ENGENHARQ", "produto": "CASTANHEIRAS", "status": "APROVADO SICAQ", "vgv": 275000, "bonus": 0, "botverm": 0,"status_venda":"venda"}, {"id": "p4", "mes": "FEV", "corretor": "Filipe", "cliente": "Marlene/Ibener", "construtora": "MRV", "produto": "RECANTO DAS ARVORES", "status": "APROVADO SICAQ", "vgv": 267990, "bonus": 0, "botverm": 0,"status_venda":"venda"}, {"id": "p5", "mes": "FEV", "corretor": "Edvaldo", "cliente": "Leydson Barbosa", "construtora": "MRV", "produto": "RECANTO DAS ARVORES", "status": "APROVADO SICAQ", "vgv": 247950, "bonus": 500, "botverm": 0,"status_venda":"venda"}, {"id": "p6", "mes": "FEV", "corretor": "Alisson", "cliente": "Kesia/Ewerty", "construtora": "MRV", "produto": "MIRANTE DA LAGOA", "status": "APROVADO SICAQ", "vgv": 349080, "bonus": 0, "botverm": 0,"status_venda":"venda"}, {"id": "p7", "mes": "FEV", "corretor": "Edvaldo", "cliente": "MyRELLE Rayane", "construtora": "MRV", "produto": "RECANTO DAS ARVORES", "status": "APROVADO SICAQ", "vgv": 249910, "bonus": 500, "botverm": 0,"status_venda":"venda"}, {"id": "p8", "mes": "FEV", "corretor": "Alanea", "cliente": "Renata Morais", "construtora": "TELESIL", "produto": "GRAND VIA", "status": "APROVADO SICAQ", "vgv": 267990, "bonus": 500, "botverm": 0,"status_venda":"venda"}, {"id": "p9", "mes": "FEV", "corretor": "Edvaldo", "cliente": "Gean", "construtora": "TELESIL", "produto": "GRAND VIA", "status": "APROVADO SICAQ", "vgv": 263990, "bonus": 500, "botverm": 0,"status_venda":"venda"}, {"id": "p10", "mes": "FEV", "corretor": "Filipe", "cliente": "Claudio Henrique", "construtora": "ENGENHARQ", "produto": "JARDINS DOS COQUEIRAIS", "status": "APROVADO SICAQ", "vgv": 273000, "bonus": 0, "botverm": 0,"status_venda":"venda"}, {"id": "p11", "mes": "FEV", "corretor": "Filipe", "cliente": "Jamerson", "construtora": "ENGENHARQ", "produto": "JEQUITIBA", "status": "APROVADO SICAQ", "vgv": 255000, "bonus": 0, "botverm": 0,"status_venda":"venda"}, {"id": "p12", "mes": "MAIO", "corretor": "Elissandra", "cliente": "Lorena Maria", "construtora": "TELESIL", "produto": "ALDEPRIME", "status": "APROVADO SICAQ", "vgv": 276848.58, "bonus": 0, "botverm": 0,"status_venda":"venda"}, {"id": "p13", "mes": "MAIO", "corretor": "Alanea", "cliente": "Marin\u00e9ide Santos", "construtora": "ENGENHARQ", "produto": "COQUEIRAIS", "status": "APROVADO SICAQ", "vgv": 260000, "bonus": 0, "botverm": 0,"status_venda":"venda"}];
 let metasData=[{"mes": "Janeiro", "vgv": 500000, "com": 30000, "leads": 30, "fech": 5, "pacs": 15, "obs": ""}, {"mes": "Fevereiro", "vgv": 500000, "com": 30000, "leads": 30, "fech": 5, "pacs": 15, "obs": ""}, {"mes": "Mar\u00e7o", "vgv": 500000, "com": 30000, "leads": 30, "fech": 5, "pacs": 15, "obs": ""}, {"mes": "Abril", "vgv": 500000, "com": 30000, "leads": 30, "fech": 5, "pacs": 15, "obs": ""}, {"mes": "Maio", "vgv": 500000, "com": 30000, "leads": 30, "fech": 5, "pacs": 15, "obs": ""}, {"mes": "Junho", "vgv": 2000000, "com": 100000, "leads": 1000, "fech": 10, "pacs": 30, "obs": ""}, {"mes": "Julho", "vgv": 2000000, "com": 100000, "leads": 1000, "fech": 10, "pacs": 30, "obs": ""}, {"mes": "Agosto", "vgv": 2000000, "com": 100000, "leads": 1000, "fech": 10, "pacs": 30, "obs": ""}, {"mes": "Setembro", "vgv": 2000000, "com": 100000, "leads": 1000, "fech": 10, "pacs": 30, "obs": ""}, {"mes": "Outubro", "vgv": 2000000, "com": 100000, "leads": 1000, "fech": 10, "pacs": 30, "obs": ""}, {"mes": "Novembro", "vgv": 2000000, "com": 100000, "leads": 1000, "fech": 10, "pacs": 30, "obs": ""}, {"mes": "Dezembro", "vgv": 2000000, "com": 100000, "leads": 1000, "fech": 10, "pacs": 30, "obs": ""}];
 let perfilCad='corretor'; // perfil selecionado no modal de cadastro
 
@@ -593,15 +612,16 @@ function fmtN(v){return Number(v||0).toLocaleString('pt-BR')}
 
 function calcPac(p){
   const vgv=p.vgv||0;
-  const com5=vgv*0.05;           // Comissão 5%
-  const descAliq=com5*0.06;      // Alíquota 6% sobre comissão
-  const vliq=com5-descAliq;      // Valor Líquido (sem bônus e bot.verm)
-  const imob=vliq/2;             // Imobiliária 50% — não muda
-  const corrBase=vliq/2;         // Corretor base 50%
-  const botverm=p.botverm||0;    // Bot.Verm. desconta SÓ do corretor
-  const bonus=p.bonus||0;        // Bônus SOMA SÓ no corretor
-  const corrFinal=corrBase-botverm+bonus; // Comissão final corretor
-  return{vgv,com5,bonus,botverm,descAliq,vliq,imob,corrBase,corrFinal};
+  const com5=vgv*0.05;
+  const descAliq=com5*0.06;
+  const vliq=com5-descAliq;
+  const imob=vliq/2;
+  const corrBase=vliq/2;
+  const botverm=p.botverm||0;
+  const bonus=p.bonus||0;
+  const corrFinal=corrBase-botverm+bonus;
+  const ativo=p.status_venda!=='perdido'; // perdido nao conta
+  return{vgv,com5,bonus,botverm,descAliq,vliq,imob,corrBase,corrFinal,ativo};
 }
 
 async function sha256(str){
@@ -750,7 +770,7 @@ function renderCockpit(){
   document.getElementById('kpi-fech').textContent=allLeads.filter(l=>l.estagio==='✅ Fechado').length;
   document.getElementById('kpi-vgv').textContent=fmtK(totVgv);
   document.getElementById('kpi-liq').textContent=fmtK(totLiq);
-  document.getElementById('kpi-pacs').textContent=pacData.length;
+  document.getElementById('kpi-pacs').textContent=pacData.filter(p=>p.status_venda!=='perdido').length;
   const funil=[['🔵 Novo','🔵 Novo'],['🟢 Contato','🟢 Contato Feito'],['🟠 Vis.Ag.','🟠 Visita Agendada'],['🟠 Vis.Re.','🟠 Visita Realizada'],['🟣 Proposta','🟣 Proposta Enviada'],['🔴 Negoc.','🔴 Negociação'],['✅ Fechado','✅ Fechado'],['❌ Perdido','❌ Perdido']];
   const mx=Math.max(1,...funil.map(f=>allLeads.filter(l=>l.estagio===f[1]).length));
   document.getElementById('funil-container').innerHTML=funil.map(f=>{const c=allLeads.filter(l=>l.estagio===f[1]).length,p=Math.round(c/mx*100);return`<div class="frow"><span class="flab">${f[0]}</span><div class="fbar-bg"><div class="fbar" style="width:${p}%"></div></div><span class="fval">${c}</span></div>`;}).join('');
@@ -832,8 +852,20 @@ function renderGerEquipe(){
 function renderPac(){
   let tV=0,tC=0,tB=0,tBv=0,tD=0,tL=0,tI=0,tCo=0;
   const rows=pacData.map((p,i)=>{
-    const c=calcPac(p);tV+=c.vgv;tC+=c.com5;tB+=c.bonus;tBv+=c.botverm;tD+=c.descAliq;tL+=c.vliq;tI+=c.imob;tCo+=c.corrFinal;
-    return`<tr><td>${p.mes}</td><td style="color:var(--go);font-weight:500">${p.corretor}</td><td style="color:var(--of)">${p.cliente}</td><td>${p.construtora}</td><td>${p.produto}</td><td><span class="badge b-fech" style="font-size:9px">${p.status}</span></td><td class="col-vgv">${fmt(c.vgv)}</td><td class="col-com">${fmt(c.com5)}</td><td><input type="number" class="input-inline" value="${c.bonus}" placeholder="0" onchange="updatePacField(${i},'bonus',this.value)" style="border-color:rgba(251,146,60,.4);color:#fb923c;width:80px"></td><td><button class="btn-red ${c.botverm>0?'ativo':''}" onclick="editBotVerm(${i})">${c.botverm>0?fmt(c.botverm):'🔴 LANÇAR'}</button></td><td class="col-aliq">6%</td><td class="col-desc">-${fmt(c.descAliq)}</td><td class="col-liq">${fmt(c.vliq)}</td><td class="col-half">${fmt(c.imob)}</td><td class="col-half">${fmt(c.corrFinal)}</td><td><button class="btn-sm btn-danger" onclick="removePac(${i})">🗑</button></td></tr>`;
+    const c=calcPac(p);
+    if(c.ativo){tV+=c.vgv;tC+=c.com5;tB+=c.bonus;tBv+=c.botverm;tD+=c.descAliq;tL+=c.vliq;tI+=c.imob;tCo+=c.corrFinal;}
+    return`<tr style="${c.ativo?'':'opacity:0.45;background:rgba(239,68,68,.04)'}">
+      <td>${p.mes}</td>
+      <td style="color:var(--go);font-weight:500">${p.corretor}</td>
+      <td style="color:${c.ativo?'var(--of)':'#f87171'};${c.ativo?'':'text-decoration:line-through'}">${p.cliente}</td>
+      <td>${p.construtora}</td><td>${p.produto}</td>
+      <td><span class="badge b-fech" style="font-size:9px">${p.status}</span></td>
+      <td>
+        <button onclick="toggleStatusVenda(${i})" style="padding:4px 12px;border-radius:6px;border:none;font-size:11px;font-weight:700;cursor:pointer;font-family:Outfit,sans-serif;background:${c.ativo?'rgba(34,197,94,.2)':'rgba(239,68,68,.2)'};color:${c.ativo?'#22c55e':'#f87171'}">
+          ${c.ativo?'✅ VENDA':'❌ PERDIDO'}
+        </button>
+      </td>
+      <td class="col-vgv">${fmt(c.vgv)}</td><td class="col-com">${fmt(c.com5)}</td><td><input type="number" class="input-inline" value="${c.bonus}" placeholder="0" onchange="updatePacField(${i},'bonus',this.value)" style="border-color:rgba(251,146,60,.4);color:#fb923c;width:80px"></td><td><button class="btn-red ${c.botverm>0?'ativo':''}" onclick="editBotVerm(${i})">${c.botverm>0?fmt(c.botverm):'🔴 LANÇAR'}</button></td><td class="col-aliq">6%</td><td class="col-desc">-${fmt(c.descAliq)}</td><td class="col-liq">${fmt(c.vliq)}</td><td class="col-half">${fmt(c.imob)}</td><td class="col-half">${fmt(c.corrFinal)}</td><td><button class="btn-sm btn-danger" onclick="removePac(${i})">🗑</button></td></tr>`;
   }).join('');
   document.getElementById('pac-tbody').innerHTML=rows||'<tr><td colspan="16" style="text-align:center;padding:30px;color:var(--mu)">Nenhuma PAC. Clique em + NOVA PAC</td></tr>';
   document.getElementById('pac-totais').innerHTML=`<div class="ptcard"><div class="ptv">${fmt(tV)}</div><div class="ptl">VGV TOTAL</div></div><div class="ptcard"><div class="ptv">${fmt(tC)}</div><div class="ptl">COMISSÃO 5%</div></div><div class="ptcard"><div class="ptv" style="color:#fb923c">${fmt(tB)}</div><div class="ptl">TOTAL BÔNUS</div></div><div class="ptcard"><div class="ptv r">${fmt(tBv)}</div><div class="ptl">TOTAL BOT.VERM.</div></div><div class="ptcard"><div class="ptv" style="color:#f87171">-${fmt(tD)}</div><div class="ptl">DESC.ALÍQUOTA</div></div><div class="ptcard"><div class="ptv g">${fmt(tL)}</div><div class="ptl">VL.LÍQUIDO</div></div><div class="ptcard"><div class="ptv">${fmt(tI)}</div><div class="ptl">IMOBILIÁRIA 50%</div></div><div class="ptcard"><div class="ptv">${fmt(tCo)}</div><div class="ptl">CORRETORES 50%</div></div>`;
@@ -1069,6 +1101,103 @@ async function saveLead(){
 }
 async function doDeleteLead(id){if(!confirm('Remover este lead?'))return;try{await deleteLead(id);allLeads=await fetchLeads();showToast('Lead removido');if(role==='ceo')renderAll();else renderCorrLeads();}catch(e){showToast('Erro');}}
 
+// ── NEXBOT ──
+const NEXBOT_URL='https://evolution-api-production-388f1.up.railway.app';
+const NEXBOT_KEY='nexas2026api';
+const NEXBOT_INSTANCE='nexas';
+let nexbotMsgs=[];
+
+function showCorrTab(tab, el){
+  document.querySelectorAll('#corrscreen .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  if(tab==='leads'){
+    document.getElementById('corr-leads-section').style.display='grid';
+    document.getElementById('corr-leads-content').style.display='block';
+    document.getElementById('corr-nexbot-section').style.display='none';
+  } else {
+    document.getElementById('corr-leads-section').style.display='none';
+    document.getElementById('corr-leads-content').style.display='none';
+    document.getElementById('corr-nexbot-section').style.display='flex';
+    loadNexbot();
+  }
+}
+
+async function loadNexbot(){
+  const filaDiv=document.getElementById('nexbot-fila');
+  filaDiv.innerHTML='<div class="loading"><div class="spinner"></div> Carregando mensagens...</div>';
+  try{
+    const res=await fetch(NEXBOT_URL+'/chat/findChats/'+NEXBOT_INSTANCE,{
+      headers:{'apikey':NEXBOT_KEY,'Content-Type':'application/json'}
+    });
+    const data=await res.json();
+    if(!Array.isArray(data)){filaDiv.innerHTML='<div class="empty"><div class="empty-icon">💬</div><div>Nenhuma mensagem no momento</div></div>';return;}
+    
+    // Filter unread or recent chats
+    const chats=data.filter(c=>c.unreadCount>0||c.lastMessage).slice(0,20);
+    nexbotMsgs=chats;
+    
+    document.getElementById('nexbot-aguardando').textContent=chats.filter(c=>c.unreadCount>0).length;
+    document.getElementById('nexbot-total').textContent=chats.length;
+    
+    if(!chats.length){
+      filaDiv.innerHTML='<div class="empty"><div class="empty-icon">✅</div><div>Nenhuma mensagem aguardando</div></div>';
+      return;
+    }
+    
+    filaDiv.innerHTML=chats.map((c,i)=>{
+      const nome=c.name||c.id?.user||'Desconhecido';
+      const tel=c.id?.user||'';
+      const msg=c.lastMessage?.message?.conversation||c.lastMessage?.message?.extendedTextMessage?.text||'(mídia)';
+      const unread=c.unreadCount||0;
+      return `<div style="background:var(--nc);border:1px solid ${unread>0?'rgba(34,197,94,.3)':'var(--gb)'};border-radius:12px;padding:14px;margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+          <div>
+            <div style="font-size:14px;font-weight:500;color:var(--of)">${nome}</div>
+            <div style="font-size:11px;color:var(--mu);margin-top:2px">📱 ${tel}</div>
+          </div>
+          ${unread>0?`<span style="background:rgba(34,197,94,.2);color:#22c55e;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">${unread} nova(s)</span>`:''}
+        </div>
+        <div style="font-size:12px;color:var(--mu);margin-bottom:10px;padding:8px;background:rgba(255,255,255,.03);border-radius:6px">"${msg}"</div>
+        <div style="display:flex;gap:8px">
+          <button onclick="puxarLead('${nome}','${tel}')" style="flex:1;padding:8px;background:linear-gradient(135deg,var(--go),#8B6914);border:none;border-radius:8px;color:#111;font-family:Outfit,sans-serif;font-size:12px;font-weight:700;cursor:pointer">
+            ⚡ PUXAR LEAD
+          </button>
+          <a href="https://wa.me/${tel}" target="_blank" style="padding:8px 12px;background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);border-radius:8px;color:#22c55e;font-size:12px;text-decoration:none;display:flex;align-items:center">
+            💬 Responder
+          </a>
+        </div>
+      </div>`;
+    }).join('');
+  }catch(e){
+    filaDiv.innerHTML='<div class="empty"><div class="empty-icon">⚠️</div><div>Erro ao carregar mensagens</div><div style="font-size:11px;margin-top:6px">'+e.message+'</div></div>';
+    console.error(e);
+  }
+}
+
+async function puxarLead(nome, tel){
+  try{
+    // Add lead to corretor's pipeline
+    await insertLead({
+      cliente:nome,
+      telefone:tel,
+      origem:'NEXBOT - WhatsApp',
+      corretor:corrAtual,
+      estagio:'🔵 Novo',
+      temperatura:'🔥 Quente',
+      observacoes:'Lead puxado do NEXBOT'
+    });
+    allLeads=await fetchLeads();
+    showToast('✅ Lead '+nome+' puxado para sua base!');
+    // Update nexbot counter
+    const puxados=parseInt(document.getElementById('nexbot-puxados').textContent)||0;
+    document.getElementById('nexbot-puxados').textContent=puxados+1;
+    // Reload nexbot
+    loadNexbot();
+  }catch(e){
+    showToast('Erro ao puxar lead: '+e.message);
+  }
+}
+
 let editLeadId=null;
 
 function openEditLead(id){
@@ -1191,6 +1320,14 @@ function exportarLeads(){
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
   showToast(''+leads.length+' leads exportados!');
+}
+
+function toggleStatusVenda(i){
+  pacData[i].status_venda=pacData[i].status_venda==='perdido'?'venda':'perdido';
+  // Save to supabase
+  sb.from('pacs').update({status_venda:pacData[i].status_venda}).eq('id',pacData[i].id).then(()=>{});
+  renderPac();renderCockpit();renderMetas();
+  showToast(pacData[i].status_venda==='perdido'?'❌ PAC marcada como PERDIDA':'✅ PAC marcada como VENDA');
 }
 
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';setTimeout(()=>t.style.display='none',3500);}
