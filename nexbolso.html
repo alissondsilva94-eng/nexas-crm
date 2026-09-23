@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEXBOLSO — Diário Financeiro</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#121110;--page:#1c1a18;--pagealt:#221f1c;
+  --gold:#C9A84C;--golddim:rgba(201,168,76,.18);--goldline:rgba(201,168,76,.28);
+  --blue:#8CA3C4;--bluedim:rgba(140,163,196,.16);--blueline:rgba(140,163,196,.3);
+  --ink:#F0EDE8;--mu:rgba(240,237,232,.5);--mu2:rgba(240,237,232,.3);
+  --green:#7CB88F;--red:#D97B6C;
+  font-family:'Outfit',sans-serif;
+}
+body{background:var(--bg);color:var(--ink);min-height:100vh;background-image:radial-gradient(ellipse at top,rgba(201,168,76,.05),transparent 60%)}
+.wrap{max-width:1100px;margin:0 auto;padding:36px 20px 60px}
+header{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px;margin-bottom:8px}
+.brand{font-family:'Cormorant Garamond',serif;font-size:38px;font-weight:500;letter-spacing:5px;color:var(--gold)}
+.tagline{font-size:12px;color:var(--mu);letter-spacing:1px;margin-top:2px}
+.periodo{display:flex;gap:6px}
+.periodo button{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:var(--mu);padding:8px 14px;border-radius:20px;font-size:12px;cursor:pointer;font-family:'Outfit',sans-serif;transition:.2s}
+.periodo button.active{background:var(--golddim);border-color:var(--goldline);color:var(--gold)}
+.saldo-geral{text-align:center;margin:28px 0 40px}
+.saldo-geral .lab{font-size:11px;letter-spacing:2px;color:var(--mu2);margin-bottom:6px}
+.saldo-geral .val{font-family:'Cormorant Garamond',serif;font-size:56px;font-weight:600}
+.spread{display:grid;grid-template-columns:1fr 1fr;gap:0;border-radius:16px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.page{padding:28px 26px;position:relative}
+.page.left{background:var(--page);border-right:1px solid rgba(255,255,255,.06)}
+.page.right{background:var(--pagealt)}
+.page-hdr{display:flex;align-items:center;gap:10px;margin-bottom:20px}
+.page-icon{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px}
+.left .page-icon{background:var(--golddim);border:1px solid var(--goldline)}
+.right .page-icon{background:var(--bluedim);border:1px solid var(--blueline)}
+.page-title{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:500}
+.left .page-title{color:var(--gold)}
+.right .page-title{color:var(--blue)}
+.linhas{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+.linha{display:flex;justify-content:space-between;font-size:13px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.06)}
+.linha .l{color:var(--mu)}
+.linha .v.pos{color:var(--green);font-weight:500}
+.linha .v.neg{color:var(--red);font-weight:500}
+.saldo-page{text-align:center;padding:16px 0;margin-bottom:22px}
+.saldo-page .lab{font-size:10px;letter-spacing:1.5px;color:var(--mu2);margin-bottom:4px}
+.saldo-page .val{font-family:'Cormorant Garamond',serif;font-size:34px;font-weight:600}
+.cats-title{font-size:10px;letter-spacing:1.5px;color:var(--mu2);margin-bottom:10px}
+.cat-row{margin-bottom:9px}
+.cat-row .cat-top{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px}
+.cat-row .cat-top .nome{color:var(--ink)}
+.cat-row .cat-top .valor{color:var(--mu)}
+.bar-bg{height:5px;border-radius:3px;background:rgba(255,255,255,.06);overflow:hidden}
+.bar-fill{height:100%;border-radius:3px}
+.left .bar-fill{background:var(--gold)}
+.right .bar-fill{background:var(--blue)}
+.timeline{margin-top:40px}
+.timeline-title{font-size:11px;letter-spacing:2px;color:var(--mu2);margin-bottom:16px}
+.t-item{display:flex;justify-content:space-between;align-items:center;padding:12px 4px;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px}
+.t-left{display:flex;align-items:center;gap:10px}
+.t-badge{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.t-badge.emp{background:var(--golddim);border:1px solid var(--goldline)}
+.t-badge.pes{background:var(--bluedim);border:1px solid var(--blueline)}
+.t-desc{color:var(--ink)}
+.t-cat{color:var(--mu2);font-size:11px}
+.t-val{font-weight:500;white-space:nowrap}
+.empty{text-align:center;color:var(--mu2);font-size:13px;padding:30px 0}
+.loading{text-align:center;color:var(--mu2);padding:60px 0;font-size:13px}
+@media(max-width:720px){
+  .spread{grid-template-columns:1fr}
+  .page.left{border-right:none;border-bottom:1px solid rgba(255,255,255,.06)}
+  .saldo-geral .val{font-size:42px}
+  .brand{font-size:30px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="brand">NEXBOLSO</div>
+      <div class="tagline">DIÁRIO FINANCEIRO · EMPRESA & PESSOAL</div>
+    </div>
+    <div class="periodo">
+      <button class="active" data-p="hoje" onclick="mudarPeriodo('hoje',this)">Hoje</button>
+      <button data-p="semana" onclick="mudarPeriodo('semana',this)">7 dias</button>
+      <button data-p="mes" onclick="mudarPeriodo('mes',this)">Este mês</button>
+      <button data-p="tudo" onclick="mudarPeriodo('tudo',this)">Tudo</button>
+    </div>
+  </header>
+
+  <div id="conteudo" class="loading">Carregando lançamentos...</div>
+</div>
+
+<!-- Tela de senha — cobre tudo até a senha certa ser digitada -->
+<div id="tela-senha" style="position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:999">
+  <div class="brand" style="font-size:32px">NEXBOLSO</div>
+  <div style="font-size:12px;color:var(--mu);letter-spacing:1px;margin-bottom:8px">ÁREA PRIVADA — DIGITE SUA SENHA</div>
+  <input type="password" id="input-senha" placeholder="Senha" style="background:var(--page);border:1px solid var(--goldline);border-radius:10px;padding:12px 18px;color:var(--ink);font-family:'Outfit',sans-serif;font-size:15px;width:220px;text-align:center;outline:none">
+  <button onclick="tentarEntrar()" style="background:var(--golddim);border:1px solid var(--goldline);color:var(--gold);padding:10px 28px;border-radius:20px;font-size:13px;cursor:pointer;font-family:'Outfit',sans-serif">Entrar</button>
+  <div id="erro-senha" style="color:var(--red);font-size:12px;display:none">Senha incorreta</div>
+</div>
+
+<script>
+const FUNCTION_URL='https://tdkzgjbnrlztxzgnpdhr.supabase.co/functions/v1/nexbolso-dashboard';
+const ANON_KEY='sb_publishable_zk0zQYW2RBWLZQNhBWHU0w_e4_Cweoz'; // só autentica a chamada à function, não dá acesso aos dados
+let periodoAtual='hoje';
+let todosLancamentos=[];
+let senhaAtual='';
+
+function fmt(v){return 'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+
+// CORREÇÃO DE FUSO: usa o fuso de Maceió (UTC-3) em vez do UTC do navegador/servidor,
+// senão perto das 21h-23h59 locais o "hoje" pula pro dia seguinte por engano.
+function dataBrasilHoje(){return new Date().toLocaleDateString('en-CA',{timeZone:'America/Maceio'});}
+function dataInicioPeriodo(p){
+  const hojeStr=dataBrasilHoje();
+  if(p==='semana'){const d=new Date();d.setDate(d.getDate()-7);return d.toLocaleDateString('en-CA',{timeZone:'America/Maceio'});}
+  if(p==='mes')return hojeStr.slice(0,8)+'01';
+  if(p==='tudo')return '2000-01-01';
+  return hojeStr;
+}
+
+async function tentarEntrar(){
+  const senha=document.getElementById('input-senha').value;
+  if(!senha)return;
+  document.getElementById('erro-senha').style.display='none';
+  const ok=await carregar(senha);
+  if(ok){
+    senhaAtual=senha;
+    sessionStorage.setItem('nexbolso_senha',senha);
+    document.getElementById('tela-senha').style.display='none';
+  }else{
+    document.getElementById('erro-senha').style.display='block';
+  }
+}
+
+async function carregar(senhaTentativa){
+  const senha=senhaTentativa||senhaAtual;
+  try{
+    const resp=await fetch(FUNCTION_URL+'?senha='+encodeURIComponent(senha),{
+      headers:{'Authorization':'Bearer '+ANON_KEY}
+    });
+    if(resp.status===401)return false;
+    const json=await resp.json();
+    if(json.error)throw new Error(json.error);
+    todosLancamentos=json.data||[];
+    render();
+    return true;
+  }catch(e){
+    document.getElementById('conteudo').innerHTML='<div class="empty">Não foi possível carregar os dados agora.</div>';
+    console.error(e);
+    return false;
+  }
+}
+
+function mudarPeriodo(p,el){
+  periodoAtual=p;
+  document.querySelectorAll('.periodo button').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  render();
+}
+
+function render(){
+  const dataInicio=dataInicioPeriodo(periodoAtual);
+  const itens=todosLancamentos.filter(i=>i.data>=dataInicio);
+
+  const empresa=itens.filter(i=>i.origem==='empresa');
+  const pessoal=itens.filter(i=>i.origem==='pessoal');
+  const soma=(arr,tipo)=>arr.filter(i=>i.tipo===tipo).reduce((s,i)=>s+Number(i.valor),0);
+
+  const empE=soma(empresa,'entrada'),empS=soma(empresa,'saida');
+  const pesE=soma(pessoal,'entrada'),pesS=soma(pessoal,'saida');
+  const saldoGeral=(empE-empS)+(pesE-pesS);
+
+  function categoriasHTML(arr,tipo){
+    const porCat={};
+    arr.filter(i=>i.tipo==='saida').forEach(i=>{
+      const c=i.categoria||'Outros';
+      porCat[c]=(porCat[c]||0)+Number(i.valor);
+    });
+    const entradas=Object.entries(porCat).sort((a,b)=>b[1]-a[1]);
+    if(!entradas.length)return '<div style="color:var(--mu2);font-size:12px">Sem saídas registradas</div>';
+    const max=Math.max(...entradas.map(e=>e[1]));
+    return entradas.map(([cat,val])=>`
+      <div class="cat-row">
+        <div class="cat-top"><span class="nome">${cat}</span><span class="valor">${fmt(val)}</span></div>
+        <div class="bar-bg"><div class="bar-fill" style="width:${(val/max*100).toFixed(0)}%"></div></div>
+      </div>`).join('');
+  }
+
+  document.getElementById('conteudo').innerHTML=`
+    <div class="saldo-geral">
+      <div class="lab">SALDO GERAL NO PERÍODO</div>
+      <div class="val" style="color:${saldoGeral>=0?'var(--green)':'var(--red)'}">${fmt(saldoGeral)}</div>
+    </div>
+
+    <div class="spread">
+      <div class="page left">
+        <div class="page-hdr"><div class="page-icon">🏢</div><div class="page-title">Empresa</div></div>
+        <div class="linhas">
+          <div class="linha"><span class="l">Entradas</span><span class="v pos">+${fmt(empE)}</span></div>
+          <div class="linha"><span class="l">Saídas</span><span class="v neg">-${fmt(empS)}</span></div>
+        </div>
+        <div class="saldo-page">
+          <div class="lab">SALDO</div>
+          <div class="val" style="color:${(empE-empS)>=0?'var(--green)':'var(--red)'}">${fmt(empE-empS)}</div>
+        </div>
+        <div class="cats-title">SAÍDAS POR CATEGORIA</div>
+        ${categoriasHTML(empresa)}
+      </div>
+
+      <div class="page right">
+        <div class="page-hdr"><div class="page-icon">👤</div><div class="page-title">Pessoal</div></div>
+        <div class="linhas">
+          <div class="linha"><span class="l">Entradas</span><span class="v pos">+${fmt(pesE)}</span></div>
+          <div class="linha"><span class="l">Saídas</span><span class="v neg">-${fmt(pesS)}</span></div>
+        </div>
+        <div class="saldo-page">
+          <div class="lab">SALDO</div>
+          <div class="val" style="color:${(pesE-pesS)>=0?'var(--green)':'var(--red)'}">${fmt(pesE-pesS)}</div>
+        </div>
+        <div class="cats-title">SAÍDAS POR CATEGORIA</div>
+        ${categoriasHTML(pessoal)}
+      </div>
+    </div>
+
+    <div class="timeline">
+      <div class="timeline-title">LANÇAMENTOS</div>
+      ${itens.length?itens.map(i=>`
+        <div class="t-item">
+          <div class="t-left">
+            <div class="t-badge ${i.origem==='empresa'?'emp':'pes'}">${i.origem==='empresa'?'🏢':'👤'}</div>
+            <div>
+              <div class="t-desc">${i.descricao||i.categoria||'—'}</div>
+              <div class="t-cat">${i.categoria||''} · ${new Date(i.data+'T00:00:00').toLocaleDateString('pt-BR')}</div>
+            </div>
+          </div>
+          <div class="t-val" style="color:${i.tipo==='entrada'?'var(--green)':'var(--red)'}">${i.tipo==='entrada'?'+':'-'}${fmt(i.valor)}</div>
+        </div>`).join(''):'<div class="empty">Nenhum lançamento nesse período.</div>'}
+    </div>
+  `;
+}
+
+// Ao abrir a página: se já tiver senha salva nessa aba/sessão, entra direto.
+// Senão, fica esperando na tela de senha.
+(async function iniciar(){
+  const salva=sessionStorage.getItem('nexbolso_senha');
+  if(salva){
+    const ok=await carregar(salva);
+    if(ok){senhaAtual=salva;document.getElementById('tela-senha').style.display='none';return;}
+    sessionStorage.removeItem('nexbolso_senha');
+  }
+  document.getElementById('conteudo').innerHTML='';
+})();
+document.getElementById('input-senha').addEventListener('keydown',e=>{if(e.key==='Enter')tentarEntrar();});
+setInterval(()=>{if(senhaAtual)carregar();},60000); // atualiza sozinho a cada 1 minuto, só se já autenticado
+</script>
+</body>
+</html>
